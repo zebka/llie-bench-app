@@ -114,6 +114,37 @@ is shipped to the phone.
 | LYT-Net | YUV-space dual-path transformer (RGB→YCbCr in-graph) | 44,923 | IEEE SPL 2025 |
 | Retinexformer | One-stage Retinex transformer with channel attention | 1,605,701 | ICCV 2023 |
 
+## Results so far
+
+Protocol v2: CPU / float32 / ONNX Runtime, 600×400 eval15, medians over
+15 images × 10 measured passes. Quality is device-independent (same inputs and
+same ONNX artifact on every phone).
+
+**Median end-to-end latency (ms)**
+
+| Device | Zero-DCE | SCI-m | RUAS | MobileIE | LYT-Net | Zero-DCE++ | PairLIE | Retinexformer |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Nothing Phone (2a) | 972.7 | 21.8 | 115.4 | 355.3 | 1,075.3 | **84.3** | **3,664.3** | **6,035.5** |
+| Redmi Note 10 Pro | 958.3 | 29.6 | 128.3 | 400.6 | 1,070.5 | — | — | — |
+| Redmi 9T | 1,850.1 | 53.2 | 205.5 | 648.8 | 2,098.7 | — | — | — |
+
+**Quality on eval15 (mean, n = 15)**
+
+| Model | PSNR (dB) | SSIM |
+|---|---:|---:|
+| Zero-DCE | 14.80 | 0.56 |
+| SCI (medium) | 14.78 | 0.53 |
+| RUAS (LOL) | 16.30 | 0.48 |
+| Zero-DCE++ | 15.19 | 0.57 |
+| PairLIE | 19.51 | 0.73 |
+| MobileIE-6Ch | 17.91 | 0.72 |
+| LYT-Net | 21.59 | 0.81 |
+| Retinexformer | 25.07 | 0.84 |
+
+The three new models (Zero-DCE++, PairLIE, Retinexformer) are still being
+measured on the Redmi Note 10 Pro and Redmi 9T; this table is updated as those
+runs land. — این جدول به‌زودی با نتایج دو گوشی دیگر کامل می‌شود.
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
