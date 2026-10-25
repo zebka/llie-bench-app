@@ -89,11 +89,30 @@ anything else.
 
 ## Screenshots
 
-![Live monitor](docs/screenshot-monitor.png)
+<p align="center">
+  <img src="docs/screenshot-monitor.png" width="320" alt="Live monitor while PairLIE runs on a Nothing Phone (2a)">
+</p>
 
 The monitor while PairLIE runs on a Nothing Phone (2a): run phase and battery
 temperature, image/pass progress, per-core MHz with load bars, last/median pass,
 ETA, thermal status and the staged model list.
+
+## Models under test
+
+Parameters are measured live from the exported ONNX initializers (not from
+papers), and every model goes through a host-side export/parity gate before it
+is shipped to the phone.
+
+| Model | Approach | Params | Venue |
+|---|---|---:|---|
+| Zero-DCE | Zero-reference curve estimation (8 iterations) | 79,416 | CVPR 2020 |
+| SCI (medium) | Self-calibrated illumination division | 252 | CVPR 2022 |
+| RUAS (LOL) | Unrolled Retinex with an architecture-searched prior block | 1,161 | CVPR 2021 |
+| Zero-DCE++ | Lightweight curve estimation, depthwise-separable convs, curves at ¼ resolution | 10,561 | TPAMI 2021 |
+| PairLIE | Self-supervised paired-instance Retinex decomposition, γ = 0.14 | 341,767 | CVPR 2023 |
+| MobileIE-6Ch | Reparameterized multi-branch CNN with a unified 6-channel head | 23,882 | ICCV 2025 |
+| LYT-Net | YUV-space dual-path transformer (RGB→YCbCr in-graph) | 44,923 | IEEE SPL 2025 |
+| Retinexformer | One-stage Retinex transformer with channel attention | 1,605,701 | ICCV 2023 |
 
 ## License
 
