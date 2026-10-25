@@ -89,9 +89,11 @@ anything else.
 
 ## Screenshots
 
-The live monitor screen (phone, running a model) is added to
-`docs/screenshot-monitor.png` with the next update; the release notes point at
-it once captured.
+![Live monitor](docs/screenshot-monitor.png)
+
+The monitor while PairLIE runs on a Nothing Phone (2a): run phase and battery
+temperature, image/pass progress, per-core MHz with load bars, last/median pass,
+ETA, thermal status and the staged model list.
 
 ## License
 
