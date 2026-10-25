@@ -1,4 +1,4 @@
-name: android-ci
+﻿name: android-ci
 
 on:
   push:
@@ -22,7 +22,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Unit tests + assembleDebug
-        working-directory: benchmark/android
+        working-directory: .
         run: |
           chmod +x gradlew
           ./gradlew testDebugUnitTest assembleDebug --stacktrace
@@ -31,7 +31,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: app-debug
-          path: benchmark/android/app/build/outputs/apk/debug/*.apk
+          path: app/build/outputs/apk/debug/*.apk
 
       - name: Upload test results
         if: always()

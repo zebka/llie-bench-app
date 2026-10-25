@@ -1,4 +1,4 @@
-name: release
+﻿name: release
 
 # Publishes per-ABI debug-signed APKs on a version tag (v*). Debug signing is
 # deliberate: this is a sideloaded research tool, and the public release does
@@ -27,7 +27,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Unit tests + ABI-split debug APKs
-        working-directory: benchmark/android
+        working-directory: .
         run: |
           chmod +x gradlew
           ./gradlew testDebugUnitTest assembleDebug --stacktrace
@@ -37,7 +37,7 @@ jobs:
         run: |
           mkdir -p release-assets
           VERSION="${GITHUB_REF_NAME#v}"
-          APK_DIR="benchmark/android/app/build/outputs/apk/debug"
+          APK_DIR="app/build/outputs/apk/debug"
           for abi in armeabi-v7a arm64-v8a x86_64 universal; do
             src="$APK_DIR/app-${abi}-debug.apk"
             if [ -f "$src" ]; then
