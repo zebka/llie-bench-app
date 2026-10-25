@@ -1,0 +1,42 @@
+name: android-ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Unit tests + assembleDebug
+        working-directory: benchmark/android
+        run: |
+          chmod +x gradlew
+          ./gradlew testDebugUnitTest assembleDebug --stacktrace
+
+      - name: Upload debug APKs (ABI splits + universal)
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug
+          path: benchmark/android/app/build/outputs/apk/debug/*.apk
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-test-results
+          path: benchmark/android/app/build/reports/tests/
+          if-no-files-found: warn
