@@ -125,8 +125,16 @@ same ONNX artifact on every phone).
 | Device | Zero-DCE | SCI-m | RUAS | MobileIE | LYT-Net | Zero-DCE++ | PairLIE | Retinexformer |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
 | Nothing Phone (2a) | 972.7 | 21.8 | 115.4 | 355.3 | 1,075.3 | **84.3** | **3,664.3** | **6,035.5** |
-| Redmi Note 10 Pro | 958.3 | 29.6 | 128.3 | 400.6 | 1,070.5 | — | — | — |
+| Redmi Note 10 Pro | 958.3 | 29.6 | 128.3 | 400.6 | 1,070.5 | 89.5 | 4,873.0 | 8,190.0 |
 | Redmi 9T | 1,850.1 | 53.2 | 205.5 | 648.8 | 2,098.7 | — | — | — |
+
+Community devices that ran the full eight-model set through the app
+(MT6789 = Galaxy A24, Exynos 1280 = Galaxy A25):
+
+| Device | SCI-m | RUAS | Zero-DCE++ | MobileIE | Zero-DCE | LYT-Net | PairLIE | Retinexformer |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Galaxy A24 (MT6789) | 41.9 | 149.3 | 112.1 | 527.4 | 1,318.1 | 1,255.3 | 4,955.6 | 8,158.3 |
+| Galaxy A25 (Exynos 1280) | 30.3 | 137.5 | 85.8 | 418.8 | 978.8 | 1,132.0 | 3,745.2 | 6,716.7 |
 
 **Quality on eval15 (mean, n = 15)**
 
@@ -141,9 +149,12 @@ same ONNX artifact on every phone).
 | LYT-Net | 21.59 | 0.81 |
 | Retinexformer | 25.07 | 0.84 |
 
-The three new models (Zero-DCE++, PairLIE, Retinexformer) are still being
-measured on the Redmi Note 10 Pro and Redmi 9T; this table is updated as those
-runs land. — این جدول به‌زودی با نتایج دو گوشی دیگر کامل می‌شود.
+All eight models report the same eval15 PSNR on every device (e.g. Zero-DCE++
+15.19 dB, PairLIE 19.51 dB, Retinexformer 25.07 dB), which is the invariant the
+pipeline is built to preserve — latency is the only device-dependent part.
+
+Only the Redmi 9T is still missing the three new models; that row is filled in
+as those runs land. — فقط Redmi 9T مانده و جدول با نتایج آن کامل می‌شود.
 
 ## License
 
