@@ -105,16 +105,18 @@ is shipped to the phone.
 
 | Model | Approach | Params | Venue | PSNR (dB) | SSIM |
 |---|---|---:|---|---:|---:|
-| Zero-DCE | Zero-reference curve estimation (8 iterations) | 79,416 | CVPR 2020 | 14.80 | 0.56 |
 | SCI (medium) | Self-calibrated illumination division | 252 | CVPR 2022 | 14.78 | 0.53 |
-| RUAS (LOL) | Unrolled Retinex with an architecture-searched prior block | 1,161 | CVPR 2021 | 16.30 | 0.48 |
 | Zero-DCE++ | Lightweight curve estimation, depthwise-separable convs, curves at ¼ resolution | 10,561 | TPAMI 2021 | 15.19 | 0.57 |
-| PairLIE | Self-supervised paired-instance Retinex decomposition, γ = 0.14 | 341,767 | CVPR 2023 | 19.51 | 0.73 |
+| RUAS (LOL) | Unrolled Retinex with an architecture-searched prior block | 1,161 | CVPR 2021 | 16.30 | 0.48 |
 | MobileIE-6Ch | Reparameterized multi-branch CNN with a unified 6-channel head | 23,882 | ICCV 2025 | 17.91 | 0.72 |
+| Zero-DCE | Zero-reference curve estimation (8 iterations) | 79,416 | CVPR 2020 | 14.80 | 0.56 |
 | LYT-Net | YUV-space dual-path transformer (RGB→YCbCr in-graph) | 44,923 | IEEE SPL 2025 | 21.59 | 0.81 |
+| PairLIE | Self-supervised paired-instance Retinex decomposition, γ = 0.14 | 341,767 | CVPR 2023 | 19.51 | 0.73 |
 | Retinexformer | One-stage Retinex transformer with channel attention | 1,605,701 | ICCV 2023 | 25.07 | 0.84 |
 
-Quality columns are means over the 15 paired eval15 images; they are
+Rows are ordered by median latency on the reference device (Nothing Phone
+2a), fastest first, so the quality columns read as a speed/quality trade-off.
+Quality columns are means over the 15 paired eval15 images and are
 device-independent (same inputs and artifact on every phone).
 
 ## Results so far
@@ -125,19 +127,19 @@ same ONNX artifact on every phone).
 
 **Median end-to-end latency (ms)**
 
-| Device | Zero-DCE | SCI-m | RUAS | Zero-DCE++ | PairLIE | MobileIE | LYT-Net | Retinexformer |
+| Device | SCI-m | Zero-DCE++ | RUAS | MobileIE | Zero-DCE | LYT-Net | PairLIE | Retinexformer |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| Nothing Phone (2a) | 972.7 | 21.8 | 115.4 | **84.3** | **3,664.3** | 355.3 | 1,075.3 | **6,035.5** |
-| Redmi Note 10 Pro | 958.3 | 29.6 | 128.3 | 89.5 | 4,873.0 | 400.6 | 1,070.5 | 8,190.0 |
-| Redmi 9T | 1,850.1 | 53.2 | 205.5 | — | — | 648.8 | 2,098.7 | — |
+| Nothing Phone (2a) | 21.8 | **84.3** | 115.4 | 355.3 | 972.7 | 1,075.3 | **3,664.3** | **6,035.5** |
+| Redmi Note 10 Pro | 29.6 | 89.5 | 128.3 | 400.6 | 958.3 | 1,070.5 | 4,873.0 | 8,190.0 |
+| Redmi 9T | 53.2 | — | 205.5 | 648.8 | 1,850.1 | 2,098.7 | — | — |
 
 Community devices that ran the full eight-model set through the app
 (MT6789 = Galaxy A24, Exynos 1280 = Galaxy A25):
 
-| Device | Zero-DCE | SCI-m | RUAS | Zero-DCE++ | PairLIE | MobileIE | LYT-Net | Retinexformer |
+| Device | SCI-m | Zero-DCE++ | RUAS | MobileIE | Zero-DCE | LYT-Net | PairLIE | Retinexformer |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| Galaxy A24 (MT6789) | 1,318.1 | 41.9 | 149.3 | 112.1 | 4,955.6 | 527.4 | 1,255.3 | 8,158.3 |
-| Galaxy A25 (Exynos 1280) | 978.8 | 30.3 | 137.5 | 85.8 | 3,745.2 | 418.8 | 1,132.0 | 6,716.7 |
+| Galaxy A24 (MT6789) | 41.9 | 112.1 | 149.3 | 527.4 | 1,318.1 | 1,255.3 | 4,955.6 | 8,158.3 |
+| Galaxy A25 (Exynos 1280) | 30.3 | 85.8 | 137.5 | 418.8 | 978.8 | 1,132.0 | 3,745.2 | 6,716.7 |
 
 All models report the same eval15 PSNR/SSIM on every device (see the model
 table), which is the invariant the pipeline is built to preserve — latency is
