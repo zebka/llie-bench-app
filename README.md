@@ -145,9 +145,6 @@ All models report the same eval15 PSNR/SSIM on every device (see the model
 table), which is the invariant the pipeline is built to preserve — latency is
 the only device-dependent part.
 
-Only the Redmi 9T is still missing the three new models; that row is filled in
-as those runs land. — فقط Redmi 9T مانده و جدول با نتایج آن کامل می‌شود.
-
 ## License
 
 MIT — see [LICENSE](LICENSE).
