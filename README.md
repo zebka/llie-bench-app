@@ -103,16 +103,19 @@ Parameters are measured live from the exported ONNX initializers (not from
 papers), and every model goes through a host-side export/parity gate before it
 is shipped to the phone.
 
-| Model | Approach | Params | Venue |
-|---|---|---:|---|
-| Zero-DCE | Zero-reference curve estimation (8 iterations) | 79,416 | CVPR 2020 |
-| SCI (medium) | Self-calibrated illumination division | 252 | CVPR 2022 |
-| RUAS (LOL) | Unrolled Retinex with an architecture-searched prior block | 1,161 | CVPR 2021 |
-| Zero-DCE++ | Lightweight curve estimation, depthwise-separable convs, curves at ¼ resolution | 10,561 | TPAMI 2021 |
-| PairLIE | Self-supervised paired-instance Retinex decomposition, γ = 0.14 | 341,767 | CVPR 2023 |
-| MobileIE-6Ch | Reparameterized multi-branch CNN with a unified 6-channel head | 23,882 | ICCV 2025 |
-| LYT-Net | YUV-space dual-path transformer (RGB→YCbCr in-graph) | 44,923 | IEEE SPL 2025 |
-| Retinexformer | One-stage Retinex transformer with channel attention | 1,605,701 | ICCV 2023 |
+| Model | Approach | Params | Venue | PSNR (dB) | SSIM |
+|---|---|---:|---|---:|---:|
+| Zero-DCE | Zero-reference curve estimation (8 iterations) | 79,416 | CVPR 2020 | 14.80 | 0.56 |
+| SCI (medium) | Self-calibrated illumination division | 252 | CVPR 2022 | 14.78 | 0.53 |
+| RUAS (LOL) | Unrolled Retinex with an architecture-searched prior block | 1,161 | CVPR 2021 | 16.30 | 0.48 |
+| Zero-DCE++ | Lightweight curve estimation, depthwise-separable convs, curves at ¼ resolution | 10,561 | TPAMI 2021 | 15.19 | 0.57 |
+| PairLIE | Self-supervised paired-instance Retinex decomposition, γ = 0.14 | 341,767 | CVPR 2023 | 19.51 | 0.73 |
+| MobileIE-6Ch | Reparameterized multi-branch CNN with a unified 6-channel head | 23,882 | ICCV 2025 | 17.91 | 0.72 |
+| LYT-Net | YUV-space dual-path transformer (RGB→YCbCr in-graph) | 44,923 | IEEE SPL 2025 | 21.59 | 0.81 |
+| Retinexformer | One-stage Retinex transformer with channel attention | 1,605,701 | ICCV 2023 | 25.07 | 0.84 |
+
+Quality columns are means over the 15 paired eval15 images; they are
+device-independent (same inputs and artifact on every phone).
 
 ## Results so far
 
@@ -136,22 +139,9 @@ Community devices that ran the full eight-model set through the app
 | Galaxy A24 (MT6789) | 1,318.1 | 41.9 | 149.3 | 112.1 | 4,955.6 | 527.4 | 1,255.3 | 8,158.3 |
 | Galaxy A25 (Exynos 1280) | 978.8 | 30.3 | 137.5 | 85.8 | 3,745.2 | 418.8 | 1,132.0 | 6,716.7 |
 
-**Quality on eval15 (mean, n = 15)**
-
-| Model | PSNR (dB) | SSIM |
-|---|---:|---:|
-| Zero-DCE | 14.80 | 0.56 |
-| SCI (medium) | 14.78 | 0.53 |
-| RUAS (LOL) | 16.30 | 0.48 |
-| Zero-DCE++ | 15.19 | 0.57 |
-| PairLIE | 19.51 | 0.73 |
-| MobileIE-6Ch | 17.91 | 0.72 |
-| LYT-Net | 21.59 | 0.81 |
-| Retinexformer | 25.07 | 0.84 |
-
-All eight models report the same eval15 PSNR on every device (e.g. Zero-DCE++
-15.19 dB, PairLIE 19.51 dB, Retinexformer 25.07 dB), which is the invariant the
-pipeline is built to preserve — latency is the only device-dependent part.
+All models report the same eval15 PSNR/SSIM on every device (see the model
+table), which is the invariant the pipeline is built to preserve — latency is
+the only device-dependent part.
 
 Only the Redmi 9T is still missing the three new models; that row is filled in
 as those runs land. — فقط Redmi 9T مانده و جدول با نتایج آن کامل می‌شود.
