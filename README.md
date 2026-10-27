@@ -131,7 +131,7 @@ same ONNX artifact on every phone).
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
 | Nothing Phone (2a) | 21.8 | **84.3** | 115.4 | 355.3 | 972.7 | 1,075.3 | **3,664.3** | **6,035.5** |
 | Redmi Note 10 Pro | 29.6 | 89.5 | 128.3 | 400.6 | 958.3 | 1,070.5 | 4,873.0 | 8,190.0 |
-| Redmi 9T | 53.2 | — | 205.5 | 648.8 | 1,850.1 | 2,098.7 | — | — |
+| Redmi 9T | 53.2 | 107.0 | 205.5 | 648.8 | 1,850.1 | 2,098.7 | 5,902.5 | 10,365.5 |
 
 Community devices that ran the full eight-model set through the app
 (MT6789 = Galaxy A24, Exynos 1280 = Galaxy A25):
