@@ -23,6 +23,16 @@ class EnvironmentRecorderTest {
     }
 
     @Test
+    fun parsesFreshPowerSupplyTemperatureAndRejectsImplausibleValues() {
+        assertEquals(29.0, EnvironmentRecorder.parseTenthsTempC("290\n")!!, 0.0)
+        assertEquals(41.7, EnvironmentRecorder.parseTenthsTempC("417")!!, 0.0)
+        assertNull(EnvironmentRecorder.parseTenthsTempC(""))
+        assertNull(EnvironmentRecorder.parseTenthsTempC("garbage"))
+        assertNull(EnvironmentRecorder.parseTenthsTempC("-50"))
+        assertNull(EnvironmentRecorder.parseTenthsTempC("9999"))
+    }
+
+    @Test
     fun rejectsAnUnreadableCpuFrequency() {
         assertNull(EnvironmentRecorder.parseCpuFreqMhz(""))
         assertNull(EnvironmentRecorder.parseCpuFreqMhz("not-a-number"))

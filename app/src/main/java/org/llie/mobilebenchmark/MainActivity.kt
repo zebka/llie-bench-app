@@ -23,11 +23,14 @@ import android.widget.ProgressBar
 import android.widget.ScrollView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.Lifecycle
 import org.llie.mobilebenchmark.net.BundleArchive
 import org.llie.mobilebenchmark.net.BundleDownloader
 import org.llie.mobilebenchmark.net.DeviceIdentity
 import org.llie.mobilebenchmark.net.ReceiverUploader
 import org.llie.mobilebenchmark.net.RunUploads
+import org.llie.mobilebenchmark.net.UploadLedger
+import org.llie.mobilebenchmark.net.UploadWorker
 import org.llie.mobilebenchmark.runner.BenchmarkExecutor
 import org.llie.mobilebenchmark.runner.EnvironmentRecorder
 import org.llie.mobilebenchmark.runner.RunControl
@@ -111,18 +114,25 @@ class MainActivity : AppCompatActivity() {
         sampler = Executors.newSingleThreadScheduledExecutor()
         sampler.scheduleAtFixedRate({ sampleEnvironment() }, 0, 1, TimeUnit.SECONDS)
         refresh()
-        retryPendingUploads()
+        // Resume anything a previous session finished but never managed
+        // to upload (interrupted batch, killed process, dropped network).
+        uploadMissingRuns("on launch")
         handleIntent(intent)
     }
 
     override fun onStart() {
         super.onStart()
-        // Re-attach after a configuration change (rotation, resize, fold):
-        // the run and the queue live in process-wide state, not the activity.
-        if (isRunning || TestAllState.running) {
-            startTicking()
-            refresh()
-        }
+        // The monitor is live while the screen is open: it re-attaches to a
+        // running queue after a configuration change, and between runs it
+        // keeps showing the fresh battery temperature so cool-down is visible.
+        startTicking()
+        refresh()
+    }
+
+    override fun onStop() {
+        ticking = false
+        handler.removeCallbacks(ticker)
+        super.onStop()
     }
 
     override fun onDestroy() {
@@ -155,7 +165,7 @@ class MainActivity : AppCompatActivity() {
         val headerRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         phaseLabel = label("IDLE", 10f, MUTED).apply { letterSpacing = 0.10f }
         tempBadge = TextView(this).apply {
-            text = "-- Â°C"
+            text = "-- °C"
             textSize = 13f
             setTextColor(GREEN_FG)
             setPadding(dp(10), dp(4), dp(10), dp(4))
@@ -171,7 +181,7 @@ class MainActivity : AppCompatActivity() {
             setPadding(0, dp(6), 0, dp(10))
             letterSpacing = -0.01f
         }
-        counterView = label("0 / 0 images Â· 0%", 12f, MUTED)
+        counterView = label("0 / 0 images · 0%", 12f, MUTED)
         progressBar = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
             max = 100
             progressTintList = ColorStateList.valueOf(ACCENT)
@@ -217,7 +227,7 @@ class MainActivity : AppCompatActivity() {
         // ---- cores card
         val coresCard = card()
         coresCard.addView(
-            label("CPU CORES Â· MHZ (LIVE)", 10f, MUTED).apply {
+            label("CPU CORES · MHZ (LIVE)", 10f, MUTED).apply {
                 letterSpacing = 0.10f
                 setPadding(0, 0, 0, dp(8))
             },
@@ -319,6 +329,10 @@ class MainActivity : AppCompatActivity() {
             text = "Setup from server"
             setOnClickListener { setupFromServer() }
         }
+        val uploadButton = Button(this).apply {
+            text = "Upload missing"
+            setOnClickListener { uploadMissingRuns("manual") }
+        }
         val settingsButtons = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             setPadding(0, 0, 0, 0)
@@ -326,6 +340,10 @@ class MainActivity : AppCompatActivity() {
         settingsButtons.addView(saveButton, LinearLayout.LayoutParams(0, WRAP, 1f))
         settingsButtons.addView(
             setupButton,
+            LinearLayout.LayoutParams(0, WRAP, 1f).apply { marginStart = dp(8) },
+        )
+        settingsButtons.addView(
+            uploadButton,
             LinearLayout.LayoutParams(0, WRAP, 1f).apply { marginStart = dp(8) },
         )
         uploadStatus = label("", 11f, MUTED).apply { setPadding(0, dp(6), 0, 0) }
@@ -443,6 +461,10 @@ class MainActivity : AppCompatActivity() {
             val outcomes = try {
                 TestAllRunner(applicationContext).runAll(models) { model, state ->
                     TestAllState.setState(model, state)
+                    // Upload as soon as the model finishes. Uploading the
+                    // whole batch at the end meant an interrupted process
+                    // silently lost every model it had not reached yet.
+                    if (state == "done") maybeUpload(model)
                     runOnUiThread { refresh() }
                 }
             } catch (t: Throwable) {
@@ -459,7 +481,8 @@ class MainActivity : AppCompatActivity() {
                 }
                 refreshModelsAsync()
             }
-            outcomes?.forEach { maybeUpload(it.modelId) }
+            // Catch up on anything the per-model uploads did not cover.
+            uploadMissingRuns("after test all")
         }.start()
     }
 
@@ -530,28 +553,63 @@ class MainActivity : AppCompatActivity() {
 
     // ---------------------------------------------------------------- uploads
 
+    private fun uploadWorker(): UploadWorker =
+        UploadWorker(applicationContext, UploadLedger(prefs))
+
+    /**
+     * Uploads one finished run and records the server's acknowledgement.
+     *
+     * Called per model as it finishes, not once at the end of the batch:
+     * a batch that is interrupted then loses at most the model in flight,
+     * and the ledger tells the next launch what is still missing.
+     */
     private fun maybeUpload(modelId: String) {
         val base = getExternalFilesDir(null) ?: return
-        val files = RunUploads.collect(File(base, "results"), modelId)
-        val result = ReceiverUploader(BuildConfig.SERVER_URL, BuildConfig.SERVER_TOKEN)
-            .upload(deviceLabel(), modelId, files)
+        val ok = uploadWorker().upload(deviceLabel(), modelId, File(base, "results"))
         val pending = prefs.getStringSet(KEY_PENDING, emptySet()).orEmpty().toMutableSet()
-        if (result.ok) pending.remove(modelId) else pending.add(modelId)
+        if (ok) pending.remove(modelId) else pending.add(modelId)
         prefs.edit().putStringSet(KEY_PENDING, pending).apply()
         runOnUiThread {
-            uploadStatus.text = if (result.ok) {
+            uploadStatus.text = if (ok) {
                 "uploaded $modelId"
             } else {
-                "upload failed $modelId: ${result.detail}"
+                "upload failed $modelId (will retry)"
             }
         }
     }
 
-    private fun retryPendingUploads() {
-        val pending = prefs.getStringSet(KEY_PENDING, emptySet()).orEmpty()
-        if (pending.isEmpty()) return
+    /**
+     * Re-sends every staged model that has a valid run on the device but
+     * no server confirmation.
+     *
+     * This is the recovery path: it runs on every launch and on demand
+     * from the "Upload missing" button, so a batch interrupted by a
+     * killed process, a sleeping phone or a dropped network is completed
+     * without re-running the benchmark.
+     */
+    private fun uploadMissingRuns(trigger: String) {
+        val base = getExternalFilesDir(null) ?: return
+        val resultsRoot = File(base, "results")
         Thread {
+            // The legacy pending list first (models whose upload failed),
+            // then the ledger sweep (models that were never attempted).
+            // Both mark the ledger on success, so the sweep skips whatever
+            // the first pass already delivered.
+            val pending = prefs.getStringSet(KEY_PENDING, emptySet()).orEmpty()
             pending.toList().forEach { maybeUpload(it) }
+            val sent = uploadWorker().uploadMissing(
+                device = deviceLabel(),
+                modelsDir = File(base, "models"),
+                resultsRoot = resultsRoot,
+                hasValidRun = { TestAllRunner.hasValidRun(resultsRoot, it) },
+            )
+            runOnUiThread {
+                uploadStatus.text = when {
+                    sent.isEmpty() -> "nothing to upload ($trigger)"
+                    else -> "uploaded ${sent.size} missing run(s): ${sent.joinToString()}"
+                }
+                refresh()
+            }
         }.start()
     }
 
@@ -580,20 +638,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun stopTickingWhenFinished() {
-        val phase = RunMonitor.phase
-        val finished = phase == RunMonitor.PHASE_DONE || phase == RunMonitor.PHASE_FAILED
-        if (finished && !TestAllState.running) {
-            ticking = false
-            handler.removeCallbacks(ticker)
-            stopButton.visibility = View.GONE
-        }
+        val finished = RunMonitor.phase == RunMonitor.PHASE_DONE ||
+            RunMonitor.phase == RunMonitor.PHASE_FAILED
+        if (finished) stopButton.visibility = View.GONE
     }
 
     /** Runs on the sampler thread: the only place that touches disk/battery. */
     private fun sampleEnvironment() {
-        val active = RunMonitor.phase == RunMonitor.PHASE_LOADING ||
-            RunMonitor.phase == RunMonitor.PHASE_RUNNING
-        if (!active && !isRunning && !TestAllState.running) return
+        if (!lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) return
         envCache = runCatching { EnvironmentRecorder.snapshot(applicationContext) }.getOrNull()
         modelsCacheText = describeModels()
     }
@@ -604,10 +656,10 @@ class MainActivity : AppCompatActivity() {
         modelView.text = RunMonitor.modelId.ifEmpty { "LLIE Benchmark" }
         phaseLabel.text = when (phase) {
             RunMonitor.PHASE_LOADING -> "LOADING MODEL"
-            RunMonitor.PHASE_RUNNING -> "RUNNING Â· ${RunMonitor.backend.uppercase()} Â· ${RunMonitor.imageSet.uppercase()}"
+            RunMonitor.PHASE_RUNNING -> "RUNNING · ${RunMonitor.backend.uppercase()} · ${RunMonitor.imageSet.uppercase()}"
             RunMonitor.PHASE_DONE -> "DONE"
-            RunMonitor.PHASE_FAILED -> "FAILED Â· ${RunMonitor.failure}"
-            else -> if (TestAllState.running) "TEST ALL Â· WAITING" else "IDLE Â· WAITING FOR A RUN"
+            RunMonitor.PHASE_FAILED -> "FAILED · ${RunMonitor.failure}"
+            else -> if (TestAllState.running) "TEST ALL · WAITING" else "IDLE · WAITING FOR A RUN"
         }
         val percent = progressPercent(
             RunMonitor.imagesDone,
@@ -616,14 +668,14 @@ class MainActivity : AppCompatActivity() {
             RunMonitor.passTotal,
         )
         progressBar.progress = percent
-        counterView.text = "${RunMonitor.imagesDone} / ${RunMonitor.imagesTotal} images Â· $percent%"
+        counterView.text = "${RunMonitor.imagesDone} / ${RunMonitor.imagesTotal} images · $percent%"
         detailView.text = if (active) {
-            "current: ${RunMonitor.currentImage.ifEmpty { "-" }} Â· pass ${RunMonitor.passIndex} / ${RunMonitor.passTotal}"
+            "current: ${RunMonitor.currentImage.ifEmpty { "-" }} · pass ${RunMonitor.passIndex} / ${RunMonitor.passTotal}"
         } else {
             ""
         }
         val snap = envCache
-        if (snap != null && (active || TestAllState.running)) {
+        if (snap != null) {
             lastThermal = snap.thermal
             setTemperature(snap.batteryTempC)
             val freqs = snap.cpuFreqsMhz
@@ -669,18 +721,18 @@ class MainActivity : AppCompatActivity() {
         return staged.joinToString("\n") { model ->
             val state = TestAllState.stateOf(model)
                 ?: if (TestAllRunner.hasValidRun(results, model)) "valid v2 run" else "pending"
-            "$model â€” $state"
+            "$model — $state"
         }
     }
 
     private fun setTemperature(tempC: Double?) {
         if (tempC == null) {
-            tempBadge.text = "-- Â°C"
+            tempBadge.text = "-- °C"
             tempBadge.setTextColor(GREEN_FG)
             tempBadge.background = pill(GREEN_BG)
             return
         }
-        tempBadge.text = String.format("%.1f Â°C", tempC)
+        tempBadge.text = String.format("%.1f °C", tempC)
         when {
             tempC >= 45.0 -> {
                 tempBadge.setTextColor(RED_FG)

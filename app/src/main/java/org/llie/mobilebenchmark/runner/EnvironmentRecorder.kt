@@ -62,8 +62,13 @@ object EnvironmentRecorder {
         val scale = battery?.getIntExtra(BatteryManager.EXTRA_SCALE, -1) ?: -1
         val status = battery?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) ?: -1
         val plugged = battery?.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0) ?: 0
+        // The sticky battery broadcast can lag by tens of seconds; on most
+        // devices the power-supply sysfs node is refreshed continuously, so
+        // prefer it and fall back to the broadcast.
+        val sysfsTemp = sysfsBatteryTempC()
         return EnvSnapshot(
-            batteryTempC = if (rawTemp == Int.MIN_VALUE) null else parseBatteryTempC(rawTemp),
+            batteryTempC = sysfsTemp
+                ?: if (rawTemp == Int.MIN_VALUE) null else parseBatteryTempC(rawTemp),
             batteryLevelPct = if (level >= 0 && scale > 0) level * 100 / scale else null,
             charging = if (status == -1) {
                 null
@@ -84,6 +89,27 @@ object EnvironmentRecorder {
     /** cpufreq exposes kHz; the report uses MHz. */
     fun parseCpuFreqMhz(rawKhz: String): Int? =
         rawKhz.trim().toLongOrNull()?.let { (it / 1000).toInt() }
+
+    /**
+     * Fresh battery temperature from power_supply sysfs (tenths of °C).
+     * Missing or implausible values return null so the caller falls back to
+     * the battery broadcast.
+     */
+    fun sysfsBatteryTempC(): Double? {
+        for (path in BATTERY_TEMP_PATHS) {
+            val file = File(path)
+            if (!file.isFile) continue
+            val raw = runCatching { file.readText().trim() }.getOrNull() ?: continue
+            parseTenthsTempC(raw)?.let { return it }
+        }
+        return null
+    }
+
+    /** power_supply reports tenths of a degree; reject implausible readings. */
+    fun parseTenthsTempC(raw: String): Double? {
+        val tenths = raw.trim().toIntOrNull() ?: return null
+        return if (tenths in 0..1_200) tenths / 10.0 else null
+    }
 
     fun cpuFreqsMhz(): List<Int> {
         val cpuDirs = File("/sys/devices/system/cpu").listFiles { file ->
@@ -115,5 +141,9 @@ object EnvironmentRecorder {
     }
 
     private val CPU_DIR = Regex("cpu\\d+")
+    private val BATTERY_TEMP_PATHS = listOf(
+        "/sys/class/power_supply/battery/temp",
+        "/sys/class/power_supply/bms/temp",
+    )
     private const val TWO_HOURS_MS = 2L * 60L * 60L * 1000L
 }

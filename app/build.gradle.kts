@@ -19,8 +19,8 @@ android {
         applicationId = "org.llie.mobilebenchmark"
         minSdk = 26
         targetSdk = 34
-        versionCode = 2
-        versionName = "0.2.0"
+        versionCode = 3
+        versionName = "0.3.0"
         // Host-triggered runs must present this exact extra; keeps a stray app
         // on the phone from starting a benchmark run by itself.
         buildConfigField("String", "RUN_TOKEN", "\"llie-run-7c4Q2p\"")
