@@ -18,9 +18,13 @@ outputs.
   per-core MHz grid with load bars, last/median pass, PSS peak, thermal status.
 - **Test all**: queues every staged model heavy→light, waits for the battery to
   cool to 38 °C between models, skips models that already have a valid run, and
-  uploads each finished run.
+  uploads each finished run as soon as it completes.
 - **Stop** (with confirmation): the running model closes as `success=false`,
   `failure_reason="stopped by user"`, and the queue halts.
+- **Upload missing**: re-sends every run that finished on the phone but was not
+  confirmed by the server — the recovery path for a batch interrupted by a
+  sleeping phone, a killed app or a dropped network. It also runs once at
+  launch, so an interrupted batch completes without re-running the benchmark.
 - **Setup from server**: pulls the models, manifests and eval15 images in one
   zip, so a new phone needs only the APK.
 - **Device label**: distinguishes two physically identical phones in the
@@ -156,3 +160,5 @@ MIT — see [LICENSE](LICENSE).
 3. **Setup from server** را بزن تا مدل‌ها و تصاویر دانلود شوند.
 4. **Test all** را بزن؛ گوشی باید آنلاک و روشن بماند و در حین تست شارژ نشود.
 5. برای توقف، دکمه‌ی **Stop** (با تأیید) را بزن.
+6. اگر اجرای دسته‌ای وسط کار قطع شد (گوشی خوابید، اپ بسته شد، شبکه افتاد)، اپ را
+   دوباره باز کن یا **Upload missing** را بزن تا فقط همان اجراهای نرسیده دوباره فرستاده شوند.
