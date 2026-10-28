@@ -28,9 +28,19 @@ jobs:
 
       - name: Unit tests + ABI-split debug APKs
         working-directory: .
+        env:
+          # The receiver is injected at build time, so the published APK
+          # works out of the box. These live in the repository secrets,
+          # never in the source. When they are absent the build still
+          # succeeds and produces an APK with uploads disabled.
+          LLIE_SERVER_URL: ${{ secrets.LLIE_SERVER_URL }}
+          LLIE_SERVER_TOKEN: ${{ secrets.LLIE_SERVER_TOKEN }}
         run: |
           chmod +x gradlew
-          ./gradlew testDebugUnitTest assembleDebug --stacktrace
+          ./gradlew testDebugUnitTest assembleDebug \
+            -PllieServerUrl="$LLIE_SERVER_URL" \
+            -PllieServerToken="$LLIE_SERVER_TOKEN" \
+            --stacktrace
 
       - name: Organize assets
         shell: bash
